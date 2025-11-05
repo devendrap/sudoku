@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Solver - Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        h1 {
+            color: #663399;
+            text-align: center;
+        }
+
+        #sudoku-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 50px);
+            grid-template-rows: repeat(9, 50px);
+            gap: 1px;
+            background-color: #000;
+            padding: 2px;
+            margin: 20px auto;
+            width: fit-content;
+        }
+
+        .cell {
+            background-color: #f1f1f1;
+            border: none;
+            font-size: 24px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .cell:hover {
+            background-color: lightcyan;
+        }
+
+        .cell:focus {
+            background-color: yellow;
+            color: blue;
+            outline: none;
+        }
+
+        .cell.initial {
+            background-color: #e0e0e0;
+            font-weight: bold;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px auto;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #663399;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #552288;
+        }
+
+        #message {
+            text-align: center;
+            margin: 20px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 4px;
+            min-height: 24px;
+        }
+
+        #debug {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        #debug h3 {
+            margin-top: 0;
+        }
+
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sudoku Solver - Load Sample Test</h1>
+
+    <div id="message">Click "Load Sample" button to test functionality</div>
+
+    <div id="sudoku-grid"></div>
+
+    <div class="controls">
+        <button id="load-sample">Load Sample</button>
+        <button id="solve">Solve</button>
+        <button id="reset">Reset</button>
+    </div>
+
+    <div id="debug">
+        <h3>Debug Info:</h3>
+        <p>Button clicked: <span id="click-count">0</span> times</p>
+        <p>Grid cells with values: <span id="cell-count">0</span></p>
+        <p>Status: <span id="status">Waiting...</span></p>
+    </div>
+
+    <script>
+        // Initialize 9x9 grid
+        let grid = Array(9).fill().map(() => Array(9).fill(0));
+        let initialCells = new Set();
+        let clickCount = 0;
+
+        // Create grid cells
+        const gridElement = document.getElementById('sudoku-grid');
+        const cells = [];
+
+        for (let i = 0; i < 81; i++) {
+            const cell = document.createElement('input');
+            cell.className = 'cell';
+            cell.type = 'text';
+            cell.maxLength = 1;
+            cell.dataset.index = i;
+            gridElement.appendChild(cell);
+            cells.push(cell);
+
+            cell.addEventListener('keydown', handleKeyPress);
+            cell.addEventListener('input', handleInput);
+        }
+
+        function handleKeyPress(e) {
+            const index = parseInt(e.target.dataset.index);
+            const row = Math.floor(index / 9);
+            const col = index % 9;
+
+            if (e.key === 'Escape' || e.key === ' ') {
+                e.preventDefault();
+                if (!initialCells.has(index)) {
+                    grid[row][col] = 0;
+                    e.target.value = '';
+                }
+            }
+        }
+
+        function handleInput(e) {
+            const index = parseInt(e.target.dataset.index);
+            const row = Math.floor(index / 9);
+            const col = index % 9;
+            const value = e.target.value;
+
+            if (initialCells.has(index)) {
+                e.target.value = grid[row][col] || '';
+                return;
+            }
+
+            if (value && /^[1-9]$/.test(value)) {
+                const num = parseInt(value);
+                if (isValidMove(row, col, num)) {
+                    grid[row][col] = num;
+                    e.target.value = num;
+                } else {
+                    showMessage('Invalid number for this position!');
+                    e.target.value = '';
+                    grid[row][col] = 0;
+                }
+            } else {
+                e.target.value = '';
+                grid[row][col] = 0;
+            }
+            updateDebugInfo();
+        }
+
+        function isValidMove(row, col, num) {
+            // Check row
+            for (let c = 0; c < 9; c++) {
+                if (c !== col && grid[row][c] === num) return false;
+            }
+
+            // Check column
+            for (let r = 0; r < 9; r++) {
+                if (r !== row && grid[r][col] === num) return false;
+            }
+
+            // Check 3x3 box
+            const boxRow = Math.floor(row / 3) * 3;
+            const boxCol = Math.floor(col / 3) * 3;
+            for (let r = boxRow; r < boxRow + 3; r++) {
+                for (let c = boxCol; c < boxCol + 3; c++) {
+                    if (r !== row && c !== col && grid[r][c] === num) return false;
+                }
+            }
+
+            return true;
+        }
+
+        function updateDisplay() {
+            for (let i = 0; i < 81; i++) {
+                const row = Math.floor(i / 9);
+                const col = i % 9;
+                cells[i].value = grid[row][col] || '';
+
+                if (initialCells.has(i)) {
+                    cells[i].classList.add('initial');
+                } else {
+                    cells[i].classList.remove('initial');
+                }
+            }
+            updateDebugInfo();
+        }
+
+        function showMessage(msg) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = msg;
+        }
+
+        function updateDebugInfo() {
+            let count = 0;
+            for (let i = 0; i < 9; i++) {
+                for (let j = 0; j < 9; j++) {
+                    if (grid[i][j] !== 0) count++;
+                }
+            }
+            document.getElementById('cell-count').textContent = count;
+            document.getElementById('click-count').textContent = clickCount;
+        }
+
+        // Load Sample button
+        document.getElementById('load-sample').addEventListener('click', () => {
+            clickCount++;
+            console.log('Load Sample clicked!', clickCount);
+
+            // Sample puzzle from the original code
+            const sample = [
+                [8, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 3, 6, 0, 0, 0, 0, 0],
+                [0, 7, 0, 0, 9, 0, 2, 0, 0],
+                [0, 5, 0, 0, 0, 7, 0, 0, 0],
+                [0, 0, 0, 0, 4, 5, 7, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0, 3, 0],
+                [0, 0, 1, 0, 0, 0, 0, 6, 8],
+                [0, 0, 8, 5, 0, 0, 0, 1, 0],
+                [0, 9, 0, 0, 0, 0, 4, 0, 0]
+            ];
+
+            grid = sample.map(row => [...row]);
+            initialCells.clear();
+
+            for (let i = 0; i < 81; i++) {
+                const row = Math.floor(i / 9);
+                const col = i % 9;
+                if (grid[row][col] !== 0) {
+                    initialCells.add(i);
+                }
+            }
+
+            updateDisplay();
+            showMessage('Sample puzzle loaded!');
+            document.getElementById('status').innerHTML = '<span class="success">✓ WORKING! Puzzle loaded successfully</span>';
+        });
+
+        // Solve button
+        document.getElementById('solve').addEventListener('click', () => {
+            if (solveSudoku()) {
+                updateDisplay();
+                showMessage('Puzzle solved!');
+                document.getElementById('status').innerHTML = '<span class="success">✓ Puzzle solved!</span>';
+            } else {
+                showMessage('No solution exists for this puzzle!');
+                document.getElementById('status').innerHTML = '<span class="error">✗ No solution found</span>';
+            }
+        });
+
+        // Reset button
+        document.getElementById('reset').addEventListener('click', () => {
+            grid = Array(9).fill().map(() => Array(9).fill(0));
+            initialCells.clear();
+            updateDisplay();
+            showMessage('Grid reset!');
+            document.getElementById('status').textContent = 'Reset complete';
+        });
+
+        function solveSudoku() {
+            const emptyCell = findEmptyCell();
+            if (!emptyCell) return true; // Puzzle solved
+
+            const [row, col] = emptyCell;
+
+            for (let num = 1; num <= 9; num++) {
+                if (isValidMove(row, col, num)) {
+                    grid[row][col] = num;
+
+                    if (solveSudoku()) {
+                        return true;
+                    }
+
+                    grid[row][col] = 0;
+                }
+            }
+
+            return false;
+        }
+
+        function findEmptyCell() {
+            for (let row = 0; row < 9; row++) {
+                for (let col = 0; col < 9; col++) {
+                    if (grid[row][col] === 0) {
+                        return [row, col];
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Initial debug update
+        updateDebugInfo();
+        document.getElementById('status').textContent = 'Ready - Click Load Sample to test';
+    </script>
+</body>
+</html>
