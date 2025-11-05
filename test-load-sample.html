@@ -3,20 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sudoku Solver</title>
+    <title>Sudoku Solver - Test</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            max-width: 600px;
+            margin: 50px auto;
             padding: 20px;
             background-color: #f0f0f0;
         }
 
         h1 {
             color: #663399;
-            margin-bottom: 20px;
+            text-align: center;
         }
 
         #sudoku-grid {
@@ -26,7 +25,8 @@
             gap: 1px;
             background-color: #000;
             padding: 2px;
-            margin-bottom: 20px;
+            margin: 20px auto;
+            width: fit-content;
         }
 
         .cell {
@@ -52,20 +52,11 @@
             font-weight: bold;
         }
 
-        /* Thicker borders for 3x3 boxes */
-        .cell:nth-child(3n) {
-            border-right: 2px solid #000;
-        }
-
-        .cell:nth-child(n+19):nth-child(-n+27),
-        .cell:nth-child(n+46):nth-child(-n+54) {
-            border-bottom: 2px solid #000;
-        }
-
         .controls {
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
+            margin: 20px auto;
+            justify-content: center;
         }
 
         button {
@@ -83,23 +74,41 @@
         }
 
         #message {
-            margin-bottom: 20px;
+            text-align: center;
+            margin: 20px;
             padding: 10px;
             background-color: #fff;
             border-radius: 4px;
             min-height: 24px;
         }
 
-        footer {
-            margin-top: 30px;
-            color: #666;
+        #debug {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        #debug h3 {
+            margin-top: 0;
+        }
+
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h1>Sudoku Solver</h1>
+    <h1>Sudoku Solver - Load Sample Test</h1>
 
-    <div id="message">Click a cell and press a number key (1-9) to fill it. Press Space or Escape to clear.</div>
+    <div id="message">Click "Load Sample" button to test functionality</div>
 
     <div id="sudoku-grid"></div>
 
@@ -109,12 +118,18 @@
         <button id="reset">Reset</button>
     </div>
 
-    <footer>© 2020, Developed by Devendra Phadke @ <a href="http://ridesoftech.com">Ride Softech</a></footer>
+    <div id="debug">
+        <h3>Debug Info:</h3>
+        <p>Button clicked: <span id="click-count">0</span> times</p>
+        <p>Grid cells with values: <span id="cell-count">0</span></p>
+        <p>Status: <span id="status">Waiting...</span></p>
+    </div>
 
     <script>
         // Initialize 9x9 grid
         let grid = Array(9).fill().map(() => Array(9).fill(0));
         let initialCells = new Set();
+        let clickCount = 0;
 
         // Create grid cells
         const gridElement = document.getElementById('sudoku-grid');
@@ -172,6 +187,7 @@
                 e.target.value = '';
                 grid[row][col] = 0;
             }
+            updateDebugInfo();
         }
 
         function isValidMove(row, col, num) {
@@ -209,18 +225,30 @@
                     cells[i].classList.remove('initial');
                 }
             }
+            updateDebugInfo();
         }
 
         function showMessage(msg) {
             const messageEl = document.getElementById('message');
             messageEl.textContent = msg;
-            setTimeout(() => {
-                messageEl.textContent = 'Click a cell and press a number key (1-9) to fill it. Press Space or Escape to clear.';
-            }, 3000);
+        }
+
+        function updateDebugInfo() {
+            let count = 0;
+            for (let i = 0; i < 9; i++) {
+                for (let j = 0; j < 9; j++) {
+                    if (grid[i][j] !== 0) count++;
+                }
+            }
+            document.getElementById('cell-count').textContent = count;
+            document.getElementById('click-count').textContent = clickCount;
         }
 
         // Load Sample button
         document.getElementById('load-sample').addEventListener('click', () => {
+            clickCount++;
+            console.log('Load Sample clicked!', clickCount);
+
             // Sample puzzle from the original code
             const sample = [
                 [8, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -247,6 +275,7 @@
 
             updateDisplay();
             showMessage('Sample puzzle loaded!');
+            document.getElementById('status').innerHTML = '<span class="success">✓ WORKING! Puzzle loaded successfully</span>';
         });
 
         // Solve button
@@ -254,8 +283,10 @@
             if (solveSudoku()) {
                 updateDisplay();
                 showMessage('Puzzle solved!');
+                document.getElementById('status').innerHTML = '<span class="success">✓ Puzzle solved!</span>';
             } else {
                 showMessage('No solution exists for this puzzle!');
+                document.getElementById('status').innerHTML = '<span class="error">✗ No solution found</span>';
             }
         });
 
@@ -265,6 +296,7 @@
             initialCells.clear();
             updateDisplay();
             showMessage('Grid reset!');
+            document.getElementById('status').textContent = 'Reset complete';
         });
 
         function solveSudoku() {
@@ -298,6 +330,10 @@
             }
             return null;
         }
+
+        // Initial debug update
+        updateDebugInfo();
+        document.getElementById('status').textContent = 'Ready - Click Load Sample to test';
     </script>
 </body>
 </html>
